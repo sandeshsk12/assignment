@@ -1,0 +1,112 @@
+version: 2
+
+sources:
+  - name: PRICE_SOURCE
+    database: ASSIGNMENT          
+    schema: PRICES_SCHEMA   
+    tables:
+      - name: FACT_PRICE_TABLE
+        description: "This is table with the price data which has been sourced from coin gecko using a [simple endpoint](https://docs.coingecko.com/v3.0.1/reference/simple-token-price)"
+        columns:
+          - name: blockchain
+            description: "The blockchain where the token exists"
+          - name: token_address
+            description: "The token contract address"
+          - name: timestamp
+            description: "The timestamp of the last known price of the token on coingecko"
+          - name: usd_price
+            description: "The USD price of the token"
+          - name: inserted_at
+            description: "Timestamp when the record was inserted"
+
+      - name: DIM_ASSET_METADATA
+        description: "Used to retrieve decimals and other token metadata. This has been manually inserted into the database for testing purposes. Can be automated using coingecko [API](https://docs.coingecko.com/v3.0.1/reference/simple-supported-currencies)"
+        columns:
+          - name: ID
+            description: "coingecko ID"
+          - name: symbol
+            description: "The token symbol"
+          - name: name
+            description: "The token name"
+          - name: blockchain
+            description: "The blockchain where the token exists"
+          - name: token_address
+            description: "The token contract address"
+          - name: decimals
+            description: "The number of decimals for the token"
+          - name: provider
+            description: "Price data proivder"
+
+  - name: TRANSFER_SOURCE
+    database: ASSIGNMENT
+    schema: TOKEN_TRANSFERS_SCHEMA
+    tables:
+      - name: TOKEN_TRANSFERS_TABLE
+        description: "Raw token transfer events which have been collected using the node services provided by [getblock.io](https://getblock.io/)"
+        columns:
+          - name: blockchain
+            description: "The blockchain where the transfer occurred"
+          - name: from_address
+            description: "Address sending the tokens."
+          - name: to_address
+            description: "Address receiving the tokens. It can either be an EOA or a dapp"
+          - name: token_address
+            description: "The token contract address"
+          - name: raw_amount
+            description: "The raw transfer amount (needs to be adjusted by decimals)"
+          - name: transaction_hash
+            description: "The transaction hash"
+          - name: event_index
+            description: "The log index in the transaction"
+          - name: block_timestamp
+            description: "The timestamp of the block"
+          - name: block_number
+            description: "The block number"
+          - name: block_hash
+            description: "The block hash"
+
+models:
+
+  - name: ez_token_transfers 
+    description: 
+      "Incremental model that joins token transfer data with token price data."
+    columns:
+      - name: blockchain
+        description: "Identifier of the blockchain (e.g., ethereum, bsc)"
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: "UTC timestamp when the block was recorded."
+      - name: block_number
+        description: "The number of the block in which the transaction occurred."
+      - name: block_hash
+        description: "Unique hash identifying the block."
+      - name: transaction_hash
+        description: "Unique identifier for the transaction."
+        tests:
+          - not_null
+      - name: event_index
+        description: "Index of the event within the transaction."
+        tests:
+          - not_null
+      - name: from_address
+        description: "Address sending the tokens."
+      - name: to_address
+        description: "Address receiving the tokens. It can either be an EOA or a dapp"
+      - name: token_address
+        description: "Smart contract address of the token."
+      - name: raw_amount
+        description: "Raw transferred token amount in base units."
+      - name: amount
+        description: "Token amount scaled according to the token decimals (raw_amount divided by 10 raised to the power of token decimals)."
+      - name: amount_usd
+        description: "USD value of the transferred amount computed by multiplying raw_amount by the token price (adjusted for decimals)."
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - blockchain
+            - transaction_hash
+            - event_index
+
+
