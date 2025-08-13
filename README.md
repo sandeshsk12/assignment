@@ -4,8 +4,7 @@ This is a data pipeline solution designed to ingest, process, and transform cryp
 
 For prototyping, we have restricted ourselves to develope the model for a single token, xAUT on Ethereum. This was done with keeping API limitation and storage cost in mind. However, the code has been written to handle multiple chains and tokens seamlessly. 
 
-## Working Link
-[Live streamlit app](https://appallium-6v8rbqbunzk3vhv3obezrd.streamlit.app/)
+
 
 ## Overview
 
